@@ -30,7 +30,7 @@ setup(
     description=("Low-Level iCalendar"),
     author="Hal Blackburn",
     author_email="hal@caret.cam.ac.uk",
-
+    py_modules=["llic"],
     requires=[
         "pytz"
     ],
