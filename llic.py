@@ -37,11 +37,14 @@ class BaseCalendarWriter(object):
 
     def __wrap_write(self, octets):
         out = self.output
-        while octets:
+        while True:
             write_count = self.line_length - self.line_position
             out.write(octets[:write_count])
-            self.endline(True)
             octets = octets[write_count:]
+            if octets:
+                self.endline(True)
+            else:
+                break
     
     def endline(self, is_wrapping):
         out = self.output
@@ -63,16 +66,18 @@ class BaseCalendarWriter(object):
         self.endline(False)
 
 
-TEXT_DELETE_CHARS = b"".join(chr(c) for c in range(0x0, 0x20))
-
-
 class TypesCalendarWriterHelperMixin(object):
     # The following range of chars cannot occur in iCalendar TEXT, so we
     # just delete them.
+    text_delete_chars = b"".join(
+        chr(c) for c in range(0x0, 0x20)
+        if c != ord("\n")  # Ignore \n as it's handled by escaping)
+    )
+
 
     def as_text(self, text):
         """
-        Write text escaped as an iCalendar TEXT value. 
+        Encode text as an iCalendar TEXT value.
         """
         if isinstance(text, unicode):
             text = text.encode("utf-8")
@@ -85,11 +90,14 @@ class TypesCalendarWriterHelperMixin(object):
         text = text.replace(b";", b"\\;")
         text = text.replace(b",", b"\\,")
 
-        text = text.translate(None, TEXT_DELETE_CHARS)
+        text = text.translate(None, self.text_delete_chars)
 
         return text
 
     def as_datetime(self, dt):
+        """
+        Encode a datetime object as an iCalendar DATETIME in UTC.
+        """
         if dt.tzinfo is None:
             raise ValueError("dt must have a tzinfo, got: {!r}".format(dt))
 
