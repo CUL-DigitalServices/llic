@@ -2,13 +2,12 @@
 from distutils.core import setup
 from os import path
 
-import llic
-
 
 def get_readme_text():
     readme_path = path.abspath(path.join(__file__, "../README.rst"))
     with open(readme_path) as readme:
         return readme.read()
+
 
 def get_version(filename):
     """
@@ -23,6 +22,7 @@ def get_version(filename):
                    .format(filename, version_pattern))
 
     return match.group(1)
+
 
 setup(
     name="llic",

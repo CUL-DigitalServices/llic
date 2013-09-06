@@ -2,6 +2,12 @@ llic Changelog
 =======================
 
 
+0.0.4 - 2013-09-06
+------------------
+* Fix an issue with setup.py indirectly imorting pytz before pytz was
+  installed via setup.py.
+
+
 0.0.3 - 2013-08-20
 ------------------
 * Added some unit tests
