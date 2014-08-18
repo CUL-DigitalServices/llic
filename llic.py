@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 import pytz
 
 
-__version__ = "0.0.4"
+__version__ = "0.0.5"
 __version_info__ = tuple(int(n) for n in __version__.split("."))
 
 DEFAULT_ICAL_LINE_LENGTH = 75

@@ -1,5 +1,5 @@
 # Required for llic itself:
-pytz>=2013b
+pytz
 
 # Required for tests
 mock>=1.0.1
@@ -7,3 +7,6 @@ nose>=1.3.0
 
 # Required for bench.sh:
 icalendar>=3.5
+
+# Required for packaging:
+wheel==0.23.0
