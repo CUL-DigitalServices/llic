@@ -13,8 +13,6 @@ END:VEVENT
 END:VCALENDAR
 """
 import datetime
-from StringIO import StringIO
-import re
 
 import icalendar
 import pytz
@@ -83,7 +81,7 @@ class LlicICalendarGenerator(ICalendarGenerator):
         cw = llic.CalendarWriter(out)
 
         start = pytz.utc.localize(
-                datetime.datetime(1997, 7, 14, 17, 0, 0))
+            datetime.datetime(1997, 7, 14, 17, 0, 0))
         end = pytz.utc.localize(
             datetime.datetime(1997, 7, 15, 3, 59, 59))
 
@@ -94,7 +92,8 @@ class LlicICalendarGenerator(ICalendarGenerator):
             cw.begin("VEVENT")
             cw.contentline("UID", "uid{}@example.com".format(i + 1))
             cw.contentline("DTSTAMP", cw.as_datetime(start))
-            cw.contentline("ORGANIZER;CN=John Doe", "MAILTO:john.doe@example.com")
+            cw.contentline("ORGANIZER;CN=John Doe",
+                           "MAILTO:john.doe@example.com")
             cw.contentline("DTSTART", cw.as_datetime(start))
             cw.contentline("DTEND", cw.as_datetime(end))
             cw.contentline("SUMMARY", cw.as_text("Bastille Day Party"))
@@ -113,7 +112,7 @@ class ICalendarICalendarGenerator(ICalendarGenerator):
         calendar.add("PRODID", "-//hacksw/handcal//NONSGML v1.0//EN")
 
         start = pytz.utc.localize(
-                datetime.datetime(1997, 7, 14, 17, 0, 0))
+            datetime.datetime(1997, 7, 14, 17, 0, 0))
         end = pytz.utc.localize(
             datetime.datetime(1997, 7, 15, 3, 59, 59))
 

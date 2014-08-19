@@ -10,7 +10,6 @@ import six
 
 from llic import(
     CalendarWriter,
-    CalendarWriterHelperMixin,
     TypesCalendarWriterHelperMixin
 )
 

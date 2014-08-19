@@ -51,7 +51,7 @@ class BaseCalendarWriter(object):
                 self.endline(True)
             else:
                 break
-    
+
     def endline(self, is_wrapping):
         out = self.output
         if is_wrapping:
@@ -80,18 +80,17 @@ class TypesCalendarWriterHelperMixin(object):
         if c != ord(b"\n")  # Ignore \n as it's handled by escaping)
     )
 
-
     def as_text(self, text):
         """
         Encode text as an iCalendar TEXT value.
         """
         if isinstance(text, six.text_type):
             text = text.encode("utf-8")
-        
+
         # TEXT must be escaped as follows:
         # \\ encodes \, \N or \n encodes newline
         # \; encodes ;, \, encodes ,
-        text = text.replace(b"\\", b"\\\\") # escape \
+        text = text.replace(b"\\", b"\\\\")  # escape \
         text = text.replace(b"\n", b"\\n")
         text = text.replace(b";", b"\\;")
         text = text.replace(b",", b"\\,")
@@ -126,5 +125,7 @@ class CalendarWriterHelperMixin(object):
         self.contentline("END", section)
 
 
-class CalendarWriter(TypesCalendarWriterHelperMixin, CalendarWriterHelperMixin, BaseCalendarWriter):
+class CalendarWriter(TypesCalendarWriterHelperMixin,
+                     CalendarWriterHelperMixin,
+                     BaseCalendarWriter):
     pass
