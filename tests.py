@@ -1,8 +1,9 @@
 from __future__ import unicode_literals
 
-import datetime
-import unittest
 import cStringIO
+import datetime
+import re
+import unittest
 
 import pytz
 from mock import MagicMock, sentinel
@@ -12,6 +13,26 @@ from llic import(
     TypesCalendarWriterHelperMixin,
     CalendarWriterHelperMixin
 )
+
+
+class BackportTestCaseMixin(object):
+    """
+    TestCase methods backported for Python 6.
+
+    Include after unittest.TestCase so that standard methods are used
+    when present.
+    """
+
+    def assertIsNone(self, x):
+        if x is not None:
+            raise self.failureException("{!r} is not None".format(x))
+
+    def assertRegexpMatches(self, s, regex, msg=None):
+        if not re.search(regex, s):
+            msg = "{}: {!r} not found in {!r}".format(
+                msg or "Regexp didn't match", regex, s
+            )
+            raise self.failureException(msg)
 
 
 class TestCalendarWriter(unittest.TestCase):
@@ -139,7 +160,7 @@ class TestAsTest(TypesTestMixin, unittest.TestCase):
         self.assertEqual("", self.instance.as_text(low_chars))
 
 
-class TestAsDate(TypesTestMixin, unittest.TestCase):
+class TestAsDate(TypesTestMixin, unittest.TestCase, BackportTestCaseMixin):
     def test_naive_date_raises_value_error(self):
         """
         Verify that dates without timezone information are rejected with
@@ -171,5 +192,3 @@ class TestAsDate(TypesTestMixin, unittest.TestCase):
         dt = zone.localize(datetime.datetime(2013, 6, 21, 12, 0))
         encoded = self.instance.as_datetime(dt)
         self.assertEqual("20130621T110000Z", encoded)
-
-
