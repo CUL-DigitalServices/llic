@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import unicode_literals
+
 import re
 
 from setuptools import setup
@@ -31,7 +33,8 @@ setup(
     py_modules=["llic"],
     include_package_data=True,
     install_requires=[
-        "pytz"
+        "pytz",
+        "six"
     ],
     license="BSD",
     zip_safe=False,

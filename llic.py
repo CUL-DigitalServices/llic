@@ -4,7 +4,7 @@ Low-Level iCalendar library.
 from __future__ import unicode_literals
 
 import pytz
-
+import six
 
 __version__ = "0.0.5"
 __version_info__ = tuple(int(n) for n in __version__.split("."))
@@ -27,6 +27,12 @@ class BaseCalendarWriter(object):
 
     def write(self, octets):
         assert self.line_position <= self.line_length
+
+        if isinstance(octets, six.text_type):
+            # Only support UTF-8 output for now
+            octets = octets.encode("utf-8")
+
+        assert isinstance(octets, six.binary_type)
 
         octets_len = len(octets)
         if octets_len + self.line_position <= self.line_length:
@@ -70,8 +76,8 @@ class TypesCalendarWriterHelperMixin(object):
     # The following range of chars cannot occur in iCalendar TEXT, so we
     # just delete them.
     text_delete_chars = b"".join(
-        chr(c) for c in range(0x0, 0x20)
-        if c != ord("\n")  # Ignore \n as it's handled by escaping)
+        six.int2byte(c) for c in range(0x0, 0x20)
+        if c != ord(b"\n")  # Ignore \n as it's handled by escaping)
     )
 
 
@@ -79,7 +85,7 @@ class TypesCalendarWriterHelperMixin(object):
         """
         Encode text as an iCalendar TEXT value.
         """
-        if isinstance(text, unicode):
+        if isinstance(text, six.text_type):
             text = text.encode("utf-8")
         
         # TEXT must be escaped as follows:

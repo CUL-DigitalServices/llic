@@ -1,36 +1,38 @@
 from __future__ import unicode_literals
 
-import cStringIO
 import datetime
 import re
 import unittest
 
-import pytz
 from mock import MagicMock, sentinel
+import pytz
+import six
 
 from llic import(
     CalendarWriter,
-    TypesCalendarWriterHelperMixin,
-    CalendarWriterHelperMixin
+    CalendarWriterHelperMixin,
+    TypesCalendarWriterHelperMixin
 )
 
 
 class BackportTestCaseMixin(object):
     """
-    TestCase methods backported for Python 6.
+    TestCase methods backported for older Python versions.
 
     Include after unittest.TestCase so that standard methods are used
     when present.
     """
 
+    # Backported for Python < 2.7
     def assertIsNone(self, x):
         if x is not None:
             raise self.failureException("{!r} is not None".format(x))
 
-    def assertRegexpMatches(self, s, regex, msg=None):
-        if not re.search(regex, s):
+    # Backported for Python < 3.2
+    def assertRegex(self, test, regex, msg=None):
+        if not re.search(regex, test):
             msg = "{}: {!r} not found in {!r}".format(
-                msg or "Regexp didn't match", regex, s
+                msg or "Regexp didn't match", regex, test
             )
             raise self.failureException(msg)
 
@@ -42,10 +44,10 @@ class TestCalendarWriter(unittest.TestCase):
 
         writer.write("I like writing stuff")
 
-        mock_out.write.assert_called_once_with("I like writing stuff")
+        mock_out.write.assert_called_once_with(b"I like writing stuff")
 
     def test_write_wrap(self):
-        out = cStringIO.StringIO()
+        out = six.BytesIO()
         writer = CalendarWriter(out)
 
         message = (
@@ -57,13 +59,15 @@ class TestCalendarWriter(unittest.TestCase):
         writer.write(message)
 
         value = out.getvalue()
-        lines = value.split("\r\n")
+        # Don't strip the space after newline, otherwise line length would
+        # be off by 1.
+        lines = value.split(b"\r\n")
 
         self.assertEqual(max(len(l) for l in lines), 75)
-        self.assertFalse(value.endswith("\r\n "))
+        self.assertFalse(value.endswith(b"\r\n "))
 
     def test_write_start_contenetline(self):
-        out = cStringIO.StringIO()
+        out = six.BytesIO()
         writer = CalendarWriter(out)
 
         writer.start_contentline("foo")
@@ -71,7 +75,7 @@ class TestCalendarWriter(unittest.TestCase):
         self.assertEqual(out.getvalue(), b"foo:")
 
     def test_write_end_contenetline(self):
-        out = cStringIO.StringIO()
+        out = six.BytesIO()
         writer = CalendarWriter(out)
 
         writer.end_contentline()
@@ -81,7 +85,7 @@ class TestCalendarWriter(unittest.TestCase):
 
 class TestCalendarWriterHelperMixin(unittest.TestCase):
     def test_contentline(self):
-        writer = CalendarWriter(cStringIO.StringIO())
+        writer = CalendarWriter(six.BytesIO())
 
         writer.start_contentline = MagicMock()
         writer.value = MagicMock()
@@ -94,7 +98,7 @@ class TestCalendarWriterHelperMixin(unittest.TestCase):
         writer.end_contentline.assert_called_once()
 
     def test_begin(self):
-        writer = CalendarWriter(cStringIO.StringIO())
+        writer = CalendarWriter(six.BytesIO())
 
         writer.start_contentline = MagicMock()
         writer.value = MagicMock()
@@ -107,7 +111,7 @@ class TestCalendarWriterHelperMixin(unittest.TestCase):
         writer.end_contentline.assert_called_once()
 
     def test_end(self):
-        writer = CalendarWriter(cStringIO.StringIO())
+        writer = CalendarWriter(six.BytesIO())
 
         writer.start_contentline = MagicMock()
         writer.value = MagicMock()
@@ -137,27 +141,27 @@ class TestAsTest(TypesTestMixin, unittest.TestCase):
     """
 
     def test_newline_chars_are_escaped(self):
-        self.assertEqual("\\n", self.instance.as_text("\n"))
+        self.assertEqual(b"\\n", self.instance.as_text("\n"))
 
     def test_backslash_chars_are_escaped(self):
-        self.assertEqual("\\\\", self.instance.as_text("\\"))
+        self.assertEqual(b"\\\\", self.instance.as_text("\\"))
 
     def test_semicolon_chars_are_escaped(self):
-        self.assertEqual("\\;", self.instance.as_text(";"))
+        self.assertEqual(b"\\;", self.instance.as_text(";"))
 
     def test_comma_chars_are_escaped(self):
-        self.assertEqual("\\,", self.instance.as_text(","))
+        self.assertEqual(b"\\,", self.instance.as_text(","))
 
     def test_low_chars_are_stripped(self):
         """
         Characters < 0x20 are not allowed in iCalendar TEXT values.
         """
         low_chars = b"".join(
-            chr(c) for c in range(0x0, 0x20)
-            if c != ord("\n")  # Ignore \n as it's handled by escaping
+            six.int2byte(c) for c in range(0x0, 0x20)
+            if c != ord(b"\n")  # Ignore \n as it's handled by escaping
         )
 
-        self.assertEqual("", self.instance.as_text(low_chars))
+        self.assertEqual(b"", self.instance.as_text(low_chars))
 
 
 class TestAsDate(TypesTestMixin, unittest.TestCase, BackportTestCaseMixin):
@@ -180,7 +184,7 @@ class TestAsDate(TypesTestMixin, unittest.TestCase, BackportTestCaseMixin):
         """
         dt = pytz.utc.localize(datetime.datetime(2013, 6, 21, 12, 0))
         encoded = self.instance.as_datetime(dt)
-        self.assertRegexpMatches(encoded, "[zZ]$")
+        self.assertRegex(encoded, "[zZ]$")
 
     def test_datetimes_are_converted_to_utc(self):
         """
