@@ -1,21 +1,24 @@
 """
-BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//hacksw/handcal//NONSGML v1.0//EN
-BEGIN:VEVENT
-UID:uid1@example.com
-DTSTAMP:19970714T170000Z
-ORGANIZER;CN=John Doe:MAILTO:john.doe@example.com
-DTSTART:19970714T170000Z
-DTEND:19970715T035959Z
-SUMMARY:Bastille Day Party
-END:VEVENT
-END:VCALENDAR
-"""
-import datetime
+Benchmark of llic and icalendar iCalendar generators.
 
+Usage:
+    bench [-c=EVENT_COUNT]
+
+Options:
+    -c=EVENT_COUNT  The number of events to generate per iCalendar document
+"""
+from __future__ import unicode_literals, print_function
+
+from functools import partial
+import datetime
+import itertools
+import sys
+import timeit
+
+import docopt
 import icalendar
 import pytz
+import six
 
 import llic
 
@@ -37,7 +40,61 @@ END:VCALENDAR\r\n\
 """
 
 
+class AutoTimeitResult(object):
+    def __init__(self, time, loops, count):
+        self.time = time
+        self.loops = loops
+        self.count = count
+
+    def format_time(self, t):
+        if t < 1.0 / 1e3:
+            return "{:.0f} usec".format(t * 1e6)
+        elif t < 1.0:
+            return "{:.0f} msec".format(t * 1e3)
+        return "{:.2f} sec".format(t)
+
+    def __unicode__(self):
+        return "{:d} loops, best of {:d}: {} per loop".format(
+            self.loops, self.count, self.format_time(self.time)
+        )
+
+    def __repr__(self):
+        return ("bench.AutoTimeitResult(time={!r}, loops={!r}, count={!r})"
+                .format(self.time, self.loops, self.count))
+
+    if six.PY3:
+        def __str__(self):
+            return self.__unicode__()
+    else:
+        def __str__(self):
+            return self.__unicode__().encode("utf-8")
+
+
+def auto_timeit(stmt=None, setup=None, timer=None, repeat=3, number=None,
+                min_total_time=0.2):
+    """
+    Equivalent to the timeit module's command line interface.
+    """
+    timer_args = dict((k, v) for k, v in
+                      [('stmt', stmt), ('setup', setup), ('timer', timer)]
+                      if v is not None)
+    timer = timeit.Timer(**timer_args)
+
+    if number is not None:
+        loop_time = min(timer.repeat(repeat=repeat, number=number)) / number
+        return AutoTimeitResult(loop_time, number, repeat)
+
+    for i in itertools.count(1):
+        n = int(10**i)
+        total_time = min(timer.repeat(repeat=repeat, number=n))
+        if total_time >= min_total_time:
+            return AutoTimeitResult(total_time / n, n, repeat)
+
+
 class ICalendarGenerator(object):
+    def get_name(self):
+        return getattr(self, "name")
+
     def generate_icalendar(self):
         raise NotImplemented
 
@@ -50,9 +107,6 @@ class ICalendarGenerator(object):
         expected = icalendar.Calendar.from_ical(EXAMPLE_ICAL).to_ical()
 
         if not actual == expected:
-            print cal
-            print actual
-            print expected
             raise AssertionError("Generated calendar didn't match example.",
                                  actual, expected)
 
@@ -76,6 +130,8 @@ class DodgyIO():
 
 
 class LlicICalendarGenerator(ICalendarGenerator):
+    name = "llic"
+
     def generate_icalendar(self, event_count=1):
         out = DodgyIO()
         cw = llic.CalendarWriter(out)
@@ -106,6 +162,8 @@ class LlicICalendarGenerator(ICalendarGenerator):
 
 
 class ICalendarICalendarGenerator(ICalendarGenerator):
+    name = "icalendar"
+
     def generate_icalendar(self, event_count=1):
         calendar = icalendar.Calendar()
         calendar.add("VERSION", "2.0")
@@ -142,6 +200,8 @@ class ICalendarICalendarGenerator(ICalendarGenerator):
 
 
 class StupidICalendarGenerator(ICalendarGenerator):
+    name = "stupid"
+
     def generate_icalendar(self, event_count=1):
         bits = []
         start = (
@@ -171,13 +231,43 @@ class StupidICalendarGenerator(ICalendarGenerator):
         return "".join(bits)
 
 
-llic_gen = LlicICalendarGenerator()
-ical_gen = ICalendarICalendarGenerator()
-stupid_gen = StupidICalendarGenerator()
+generators = [
+    LlicICalendarGenerator(),
+    ICalendarICalendarGenerator(),
+    StupidICalendarGenerator()
+]
 
 
-def self_test_all():
-    llic_gen.self_test()
-    ical_gen.self_test()
-    stupid_gen.self_test()
-    print("Self test: OK")
+def self_test_all(generators):
+    for gen in generators:
+        gen.self_test()
+
+
+def bench(event_count):
+    self_test_all(generators)
+
+    print("Generating iCalendar document containing {:d} events."
+          .format(event_count))
+
+    for gen in generators:
+        print("\n{}:".format(gen.get_name()))
+        print(auto_timeit(partial(gen.generate_icalendar, event_count)))
+
+
+def main():
+    args = docopt.docopt(__doc__)
+
+    try:
+        count = 1000 if args["-c"] is None else int(args["-c"])
+    except ValueError as e:
+        print("bad value for -c: {}".format(e), file=sys.stderr)
+        sys.exit(1)
+    if count < 1:
+        print("bad value for -c: must be >= 1, got: {}".format(count),
+              file=sys.stderr)
+        sys.exit(1)
+
+    bench(count)
+
+if __name__ == "__main__":
+    main()

@@ -7,6 +7,8 @@ nose>=1.3.0
 
 # Required for bench.sh:
 icalendar>=3.5
+six
+docopt
 
 # Required for packaging:
 wheel==0.23.0
